@@ -1,0 +1,8 @@
+#load "graphics.cma"
+open Graphics
+#use "topfind"
+#require "camlimages.graphics"
+#require "camlimages.png"
+#directory "_build"
+#load "tetronimo.cmo"
+#load "board.cmo"
