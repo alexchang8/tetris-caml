@@ -1,3 +1,5 @@
 B _build
+PKG unix
+PKG graphics
 PKG camlimages.png
 PKG camlimages.graphics

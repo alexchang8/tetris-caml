@@ -1,1 +1,1 @@
-true: package(camlimages.png),package(camlimages.graphics)
+true: package(graphics),package(unix),package(camlimages.png),package(camlimages.graphics)
