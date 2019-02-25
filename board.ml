@@ -6,10 +6,13 @@ type cell = Empty | Filled of Graphics.color
 
 type t = {active_tet : Tetronimo.t; swap: Tetronimo.t; matrix: (cell array) array}
 
+let dark_grey = rgb 45 45 45
+
 let draw_cell (x, y) =
   let x_c = x * 30 + 201 and
-  y_c = 621 - (y * 30) in
-  fill_rect x_c y_c 28 28
+  y_c = 651 - (y * 30) in
+  if y = 0 then fill_rect x_c y_c 28 14
+  else fill_rect x_c y_c 28 28
 
 let paint_tetronimo b t color cell =
   set_color color;
@@ -22,19 +25,13 @@ let draw_tetronimo b (t:Tetronimo.t) =
   let _ = paint_tetronimo b t c (Filled(c)) in
   Graphics.auto_synchronize true
 
-(*TODO: abstract similarities w/ draw tet*)
 let erase_tetronimo b t =
   Graphics.auto_synchronize false;
-  paint_tetronimo b t Graphics.black Empty
-(* Graphics.auto_synchronize false;
-   set_color black;
-   let t_locs = Tetronimo.locs t in
-   let _ = List.map (fun (x,y) -> Array.set (b.matrix.(y)) x Empty) t_locs in 
-   let _ = List.map (fun coords -> draw_cell coords) t_locs in ()
-*)
+  paint_tetronimo b t dark_grey Empty
+
 let coord_conflict matrix (x,y) = 
   if x > 9 || x < 0 then true
-  else if y > 19 || y < 0 then true
+  else if y > 20 || y < 0 then true
   else match matrix.(y).(x) with
     | Empty -> false
     | Filled(_) -> true 
@@ -66,10 +63,28 @@ let board_new_piece board =
            matrix = board.matrix} in
   let _ = draw_tetronimo x tetr in
   x
+
 let hard_drop board =
   erase_tetronimo board board.active_tet;
   drop_helper board board.active_tet |> Tetronimo.m_down (-1) |> draw_tetronimo board;
   board_new_piece board
+
+let rec draw_helper_y x y = 
+  if y < 21 then begin
+    draw_cell (x,y);
+    draw_helper_y x (y + 1)
+  end
+  else ()
+
+let rec draw_helper_x (x:int) : unit = 
+  if x < 10 then begin
+    draw_helper_y x 0; draw_helper_x (x + 1)
+  end
+  else ()
+
+let init_cells () = 
+  set_color dark_grey;
+  draw_helper_x 0
 
 (*Board dimensions (x, y) are 10 by 20*)
 let init () =
@@ -79,16 +94,31 @@ let init () =
   let img = Png.load "bg.png" [] in
   let g = Graphic_image.of_image img in
   draw_image g 0 0;
-  fill_rect 200 50 300 600;
+  set_color Graphics.black;
+  fill_rect 200 50 300 615;
+  init_cells ();
   Random.self_init ();
   let tetr = random_tetronimo () in
   let x = {active_tet = tetr;
            swap = random_tetronimo ();
-           matrix = Array.make_matrix 20 10 Empty} in
+           matrix = Array.make_matrix 21 10 Empty} in
   let _ = draw_tetronimo x tetr in 
   x
 
 let delete_filled b = failwith "unimplemented"
+
+let is_filled_cell  = function 
+  | Filled(_) -> true
+  | Empty -> false
+
+let check_soft_drop board =
+  erase_tetronimo board board.active_tet;
+  let down1 = board.active_tet |> Tetronimo.m_down 1 in
+  if collides board down1 then true
+  else (draw_tetronimo board board.active_tet; false)
+
+let lost_game board = 
+  Array.exists is_filled_cell board.matrix.(0) && check_soft_drop board
 
 let change_active_tet board tetr =
   {active_tet = tetr;

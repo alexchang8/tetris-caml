@@ -143,7 +143,7 @@ let get_rot_matrix = function
 let new_piece p =
   {matrix = List.hd (get_rot_matrix p);
    orient = 0; piece = p;
-   x_off = 0; y_off = 0} (*should be changed to match offset of board*)
+   x_off = 3; y_off = 0} (*should be changed to match offset of board*)
 
 let wrap n =
   if n < 0 then 3
