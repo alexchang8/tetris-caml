@@ -1,6 +1,6 @@
 open Unix
 open Board
-
+(*ocamlbuild -pkg js_of_ocaml-lwt.graphics -pkg unix -pkg js_of_ocaml -pkg js_of_ocaml-ppx main.byte*)
 let flush_kp () = while Graphics.key_pressed () do
     let _ = Graphics.read_key ()
     in ()

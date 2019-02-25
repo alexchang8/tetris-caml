@@ -21,12 +21,7 @@ let draw_tetronimo b (t:Tetronimo.t) =
   let c = get_color t in
   let _ = paint_tetronimo b t c (Filled(c)) in
   Graphics.auto_synchronize true
-(* t |> get_color |> set_color;
-   let t_locs = Tetronimo.locs t in
-   let _ = List.map (fun (x,y) -> Array.set (b.matrix.(y)) x (Filled(get_color t))) t_locs in 
-   let _ = List.map (fun coords -> draw_cell coords) t_locs in 
-   Graphics.auto_synchronize true
-*)
+
 (*TODO: abstract similarities w/ draw tet*)
 let erase_tetronimo b t =
   Graphics.auto_synchronize false;
