@@ -1,10 +1,10 @@
 open Graphics
 (** the abstract type representing a tetronimo*)
-type t
 
 (** represents the type of piece*)
 type piece = I | O | T | S | Z | J | L
-
+type t = {matrix: (bool list) list; orient: int; piece: piece; x_off: int; y_off: int}
+(*type t = {matrix: (bool list) list; orient: int; piece: piece; x_off: int; y_off: int}*)
 (** Creates a new piece with given type at the top of the board *)
 val new_piece : piece -> t
 
@@ -23,3 +23,5 @@ val m_left: t -> t
 val m_down: int -> t -> t
 
 val get_color: t -> Graphics.color
+
+val get_piece: t -> piece

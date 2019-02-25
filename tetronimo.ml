@@ -119,6 +119,8 @@ let lpiece =
      [false;true;false]]
   ]
 
+let get_piece t = t.piece
+
 let get_color t = 
   match t.piece with
   | I -> cyan
