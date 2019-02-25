@@ -1,4 +1,4 @@
-MODULES=tetronimo board
+MODULES=tetronimo board main
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)

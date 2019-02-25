@@ -11,19 +11,32 @@ let draw_cell (x, y) =
   y_c = 621 - (y * 30) in
   fill_rect x_c y_c 28 28
 
-let draw_tetronimo b (t:Tetronimo.t) =
-  t |> get_color |> set_color;
+let paint_tetronimo b t color cell =
+  set_color color;
   let t_locs = Tetronimo.locs t in
-  let _ = List.map (fun (x,y) -> Array.set (b.matrix.(y)) x (Filled(get_color t))) t_locs in 
-  let _ = List.map (fun coords -> draw_cell coords) t_locs in ()
+  let _ = List.map (fun (x,y) -> Array.set (b.matrix.(y)) x cell) t_locs in 
+  let _ = List.map (fun coords -> draw_cell coords) t_locs in () 
 
+let draw_tetronimo b (t:Tetronimo.t) =
+  let c = get_color t in
+  let _ = paint_tetronimo b t c (Filled(c)) in
+  Graphics.auto_synchronize true
+(* t |> get_color |> set_color;
+   let t_locs = Tetronimo.locs t in
+   let _ = List.map (fun (x,y) -> Array.set (b.matrix.(y)) x (Filled(get_color t))) t_locs in 
+   let _ = List.map (fun coords -> draw_cell coords) t_locs in 
+   Graphics.auto_synchronize true
+*)
 (*TODO: abstract similarities w/ draw tet*)
 let erase_tetronimo b t =
-  set_color black;
-  let t_locs = Tetronimo.locs t in
-  let _ = List.map (fun (x,y) -> Array.set (b.matrix.(y)) x Empty) t_locs in 
-  let _ = List.map (fun coords -> draw_cell coords) t_locs in ()
-
+  Graphics.auto_synchronize false;
+  paint_tetronimo b t Graphics.black Empty
+(* Graphics.auto_synchronize false;
+   set_color black;
+   let t_locs = Tetronimo.locs t in
+   let _ = List.map (fun (x,y) -> Array.set (b.matrix.(y)) x Empty) t_locs in 
+   let _ = List.map (fun coords -> draw_cell coords) t_locs in ()
+*)
 let coord_conflict matrix (x,y) = 
   if x > 9 || x < 0 then true
   else if y > 19 || y < 0 then true
@@ -64,7 +77,7 @@ let hard_drop board =
   board_new_piece board
 
 (*Board dimensions (x, y) are 10 by 20*)
-let init (_:unit) =
+let init () =
   open_graph "";
   set_window_title "tetris-caml";
   resize_window 700 700;
@@ -87,20 +100,23 @@ let change_active_tet board tetr =
    swap = board.swap;
    matrix = board.matrix}
 
-let soft_drop board =
-  erase_tetronimo board board.active_tet;
-  let down1 = board.active_tet |> Tetronimo.m_down 1 in
-  if collides board down1
-  then (draw_tetronimo board board.active_tet; 
-        board_new_piece board)
-  else (draw_tetronimo board down1; 
-        change_active_tet board down1)
+let soft_drop board frame_count =
+  if frame_count > 9 then begin
+    erase_tetronimo board board.active_tet;
+    let down1 = board.active_tet |> Tetronimo.m_down 1 in
+    if collides board down1
+    then (draw_tetronimo board board.active_tet; 
+          board_new_piece board)
+    else (draw_tetronimo board down1; 
+          change_active_tet board down1)
+  end
+  else board
 
-let transform board f =
+let transform board f frame_count =
   erase_tetronimo board board.active_tet;
   let tet' = board.active_tet |> f in
   if collides board tet'
-  then soft_drop board
+  then soft_drop board frame_count
   else (draw_tetronimo board tet'; 
         change_active_tet board tet')
 
@@ -112,7 +128,7 @@ let board_rotate board r = transform board (Tetronimo.rotate r)
 
 type action = Rotate of bool | HardDrop | Swap | Translate of bool | NoAction
 
-let update (b:t) (a:action) : t = 
+let update (b:t) (a:action) frame_count : t = 
   (*TODO: check rows to delete*)
   (*TODO: show swap block*)
   (* TODO: stop swap abuse*)
@@ -121,6 +137,6 @@ let update (b:t) (a:action) : t =
   | Swap -> erase_tetronimo b b.active_tet;
     draw_tetronimo b b.swap;
     {active_tet = b.swap; swap = get_piece b.active_tet |> new_piece; matrix = b.matrix}
-  | NoAction -> soft_drop b
-  | Translate(r) -> if r then move_board_right b else move_board_left b 
-  | Rotate(r) -> board_rotate b r
+  | NoAction -> soft_drop b frame_count 
+  | Translate(r) -> if r then move_board_right b frame_count else move_board_left b frame_count
+  | Rotate(r) -> board_rotate b r frame_count
