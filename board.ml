@@ -4,7 +4,10 @@ open Images
 
 type cell = Empty | Filled of Graphics.color
 
-type t = {active_tet : Tetronimo.t; swap: Tetronimo.t; matrix: (cell array) array}
+type t = {active_tet : Tetronimo.t; 
+          swap: Tetronimo.t; 
+          matrix: (cell array) array; 
+          queue: Tetronimo.piece list}
 
 let dark_grey = rgb 45 45 45
 
@@ -19,7 +22,6 @@ let draw_cell coords =
 
 let highlight_cell coords =
   px_cell coords Graphics.draw_rect
-
 
 let paint_tetronimo t color =
   set_color color;
@@ -60,19 +62,29 @@ let num_to_piece = function
   | 6 -> Tetronimo.L
   | _ -> failwith "invalid num"
 
-let random_tetronimo (x:unit) : Tetronimo.t = 
-  Random.int 7 |> num_to_piece |> Tetronimo.new_piece
-
 let rec drop_helper board t =
   if collides board t then t else drop_helper board (Tetronimo.m_down 1 t)
 
-let board_new_piece board = 
-  let tetr = random_tetronimo () in 
-  let x = {active_tet = tetr;
-           swap = board.swap;
-           matrix = board.matrix} in
-  let _ = draw_tetronimo tetr in
-  x
+let shuffle d =
+  d |> List.map (fun c -> (Random.bits (), c)) |> List.sort compare |> List.map snd 
+
+let rand_tet_list () = 
+  shuffle [Tetronimo.I; Tetronimo.O; Tetronimo.T; 
+           Tetronimo.S; Tetronimo.Z; Tetronimo.J;
+           Tetronimo.L]
+
+let board_new_piece board =
+  match board.queue with
+  | [] -> let new_q = rand_tet_list () in 
+    {active_tet = List.hd new_q |> Tetronimo.new_piece;
+     swap = board.swap;
+     matrix = board.matrix;
+     queue = List.tl new_q}
+  | h::t ->
+    {active_tet = h |> Tetronimo.new_piece;
+     swap = board.swap;
+     matrix = board.matrix;
+     queue = List.tl board.queue}
 
 let hard_drop board =
   erase_tetronimo board.active_tet;
@@ -81,57 +93,53 @@ let hard_drop board =
   add_tetronimo_to_matrix board t';
   board_new_piece board
 
+let redraw_row y row = Array.iteri 
+    (fun x cell -> match cell with 
+       | Empty -> set_color dark_grey; draw_cell (x, y)
+       | Filled(c) -> set_color c; draw_cell (x,y)) row
 
-let rec draw_helper_y x y = 
-  if y < 21 then begin
-    draw_cell (x,y);
-    draw_helper_y x (y + 1)
-  end
-  else ()
+let redraw_matrix = Array.iteri redraw_row
 
-let rec draw_helper_x (x:int) : unit = 
-  if x < 10 then begin
-    draw_helper_y x 0; draw_helper_x (x + 1)
-  end
-  else ()
-
-let init_cells () = 
-  set_color dark_grey;
-  draw_helper_x 0
+let random_tetronimo (x:unit) : Tetronimo.t = 
+  Random.int 7 |> num_to_piece |> Tetronimo.new_piece
 
 (*Board dimensions (x, y) are 10 by 20*)
 let init () =
   open_graph "";
   set_window_title "tetris-caml";
   resize_window 700 700;
+  (*load background image*)
   let img = Png.load "bg.png" [] in
   let g = Graphic_image.of_image img in
   draw_image g 0 0;
+
   set_color Graphics.black;
   fill_rect 200 50 300 615;
-  init_cells ();
   Random.self_init ();
-  let tetr = random_tetronimo () in
-  let x = {active_tet = tetr;
-           swap = random_tetronimo ();
-           matrix = Array.make_matrix 21 10 Empty} in
-  let _ = draw_tetronimo tetr in 
-  x
+  let new_q = rand_tet_list () in
+  let tetr = List.hd new_q |> Tetronimo.new_piece in
+  let matrix = Array.make_matrix 21 10 Empty in
+  draw_tetronimo tetr; 
+  redraw_matrix matrix;
+  {active_tet = tetr;
+   swap = random_tetronimo ();
+   matrix = matrix;
+   queue = List.tl new_q}
 
 let is_filled_cell  = function 
   | Filled(_) -> true
   | Empty -> false
 
-let lost_game board = 
-  Array.exists is_filled_cell board.matrix.(0)
+let lost_game board = Array.exists is_filled_cell board.matrix.(0)
 
 let change_active_tet board tetr =
   {active_tet = tetr;
    swap = board.swap;
-   matrix = board.matrix}
+   matrix = board.matrix;
+   queue = board.queue}
 
 let soft_drop board frame_count fast =
-  let hot_frame = if fast then frame_count mod 2 = 0 else frame_count > 18 in
+  let hot_frame = if fast then true else frame_count > 18 in
   if hot_frame then begin
     erase_tetronimo board.active_tet;
     let down1 = board.active_tet |> Tetronimo.m_down 1 in
@@ -162,13 +170,6 @@ type action = Rotate of bool | HardDrop | Swap | Translate of bool | NoAction | 
 
 let not_full row = not (Array.for_all is_filled_cell row)
 
-let redraw_row y row = Array.iteri 
-    (fun x cell -> match cell with 
-       | Empty -> set_color dark_grey; draw_cell (x, y)
-       | Filled(c) -> set_color c; draw_cell (x,y)) row
-
-let redraw_matrix = Array.iteri redraw_row
-
 let rec add_empty_rows list_matrix = 
   if List.length list_matrix < 21 then
     add_empty_rows (Array.make 10 Empty :: list_matrix)
@@ -177,12 +178,10 @@ let rec add_empty_rows list_matrix =
 let check_clear_lines b =
   let filtered_full = Array.to_list b.matrix |> List.filter not_full in
   if List.length filtered_full < 21 then begin
-    let new_matrix = 
-      Array.to_list b.matrix |> List.filter not_full |> 
-      add_empty_rows |> Array.of_list in
+    let new_matrix = filtered_full |> add_empty_rows |> Array.of_list in
     redraw_matrix new_matrix;
     draw_tetronimo b.active_tet;
-    {active_tet = b.active_tet; swap = b.swap; matrix = new_matrix}
+    {active_tet = b.active_tet; swap = b.swap; matrix = new_matrix; queue = b.queue}
   end
   else b
 
@@ -201,7 +200,7 @@ let board_after_action b a frame_count =
   | HardDrop -> hard_drop b
   | Swap -> erase_tetronimo b.active_tet;
     draw_tetronimo b.swap;
-    {active_tet = b.swap; swap = get_piece b.active_tet |> new_piece; matrix = b.matrix}
+    {active_tet = b.swap; swap = get_piece b.active_tet |> new_piece; matrix = b.matrix; queue = b.queue}
   | NoAction -> soft_drop b frame_count false 
   | Translate(r) -> if r then move_board_right b frame_count else move_board_left b frame_count
   | Rotate(r) -> board_rotate b r frame_count

@@ -174,4 +174,6 @@ let m_right t = change_off t (t.x_off + 1) t.y_off
 
 let m_left t = change_off t (t.x_off - 1) t.y_off
 
-let m_down n t = change_off t t.x_off (t.y_off + n)
+let m_down n t = 
+  let y' = if (t.y_off + n) > 0 then t.y_off + n else 0 in
+  change_off t t.x_off y' 
