@@ -21,7 +21,7 @@ let get_input () : Board.action =
 
 let rec main board_state frame_time frame_count =
   (* Display state here. *)
-  let next_state = Board.update board_state (get_input ()) frame_count in
+  let next_state = Board.update board_state (get_input ()) frame_count |> Board.check_clear_lines in
 
   if Board.lost_game next_state then begin
     flush_kp ();
@@ -35,7 +35,7 @@ let rec main board_state frame_time frame_count =
     (* Advance state by one frame here. *)
     (* If less than 25ms have passed, delay until they have. *)
     let rec delay () =
-      let duration = frame_time +. 0.025 -. Unix.gettimeofday () in
+      let duration = frame_time +. 1.025 -. Unix.gettimeofday () in
       if duration > 0.0 then
         try
           sleepf duration

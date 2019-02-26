@@ -126,7 +126,7 @@ let change_active_tet board tetr =
    matrix = board.matrix}
 
 let soft_drop board frame_count =
-  if frame_count > 9 then begin
+  if true then begin
     erase_tetronimo board board.active_tet;
     let down1 = board.active_tet |> Tetronimo.m_down 1 in
     if collides board down1
@@ -150,8 +150,28 @@ let move_board_right board = transform board Tetronimo.m_right
 let move_board_left board = transform board Tetronimo.m_left
 
 let board_rotate board r = transform board (Tetronimo.rotate r)
-
 type action = Rotate of bool | HardDrop | Swap | Translate of bool | NoAction
+
+let not_full row = not (Array.for_all is_filled_cell row)
+
+let redraw_row y row = Array.iteri 
+    (fun x cell -> match cell with 
+       | Empty -> set_color dark_grey; draw_cell (x, y)
+       | Filled(c) -> set_color c; draw_cell (x,y)) row
+
+let redraw_matrix = Array.iteri redraw_row
+
+let rec add_empty_rows list_matrix = 
+  if List.length list_matrix < 21 then
+    add_empty_rows (Array.make 10 Empty :: list_matrix)
+  else list_matrix
+
+let check_clear_lines b =
+  let new_matrix = 
+    Array.to_list b.matrix |> List.filter not_full |> 
+    add_empty_rows |> Array.of_list in
+  redraw_matrix new_matrix;
+  {active_tet = b.active_tet; swap = b.swap; matrix = new_matrix}
 
 let update (b:t) (a:action) frame_count : t = 
   (*TODO: check rows to delete*)
