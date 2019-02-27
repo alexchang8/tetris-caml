@@ -1,4 +1,4 @@
-open Graphics
+open Graphics_js
 type piece = I | O | T | S | Z | J | L
 
 type t = {matrix: (bool list) list; orient: int; piece: piece; x_off: int; y_off: int}

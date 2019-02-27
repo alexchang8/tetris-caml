@@ -1,8 +1,7 @@
 open Tetronimo
-open Graphics
-open Images
+open Graphics_js
 
-type cell = Empty | Filled of Graphics.color
+type cell = Empty | Filled of Graphics_js.color
 
 type t = {active_tet : Tetronimo.t; 
           swap: Tetronimo.t; 
@@ -18,10 +17,10 @@ let px_cell (x, y) f =
   else f x_c y_c 28 28
 
 let draw_cell coords =
-  px_cell coords Graphics.fill_rect
+  px_cell coords Graphics_js.fill_rect
 
 let highlight_cell coords =
-  px_cell coords Graphics.draw_rect
+  px_cell coords Graphics_js.draw_rect
 
 let paint_tetronimo t color =
   set_color color;
@@ -30,11 +29,9 @@ let paint_tetronimo t color =
 
 let draw_tetronimo (t:Tetronimo.t) =
   let c = get_color t in
-  let _ = paint_tetronimo t c in
-  Graphics.auto_synchronize true
+  paint_tetronimo t c
 
 let erase_tetronimo t =
-  Graphics.auto_synchronize false;
   paint_tetronimo t dark_grey
 
 let add_tetronimo_to_matrix b t =
@@ -105,15 +102,7 @@ let random_tetronimo (x:unit) : Tetronimo.t =
 
 (*Board dimensions (x, y) are 10 by 20*)
 let init () =
-  open_graph "";
-  set_window_title "tetris-caml";
-  resize_window 700 700;
-  (*load background image*)
-  let img = Png.load "bg.png" [] in
-  let g = Graphic_image.of_image img in
-  draw_image g 0 0;
-
-  set_color Graphics.black;
+  set_color Graphics_js.black;
   fill_rect 200 50 300 615;
   Random.self_init ();
   let new_q = rand_tet_list () in
