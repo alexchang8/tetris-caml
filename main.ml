@@ -32,7 +32,7 @@ let rec main board_state frame_time frame_count =
     main init_board start_time 0 
   end
   else
-    let next_frame_count = if frame_count > 18 then 0 else frame_count + 1 in
+    let next_frame_count = if frame_count > 30 then 0 else frame_count + 1 in
     (* Advance state by one frame here. *)
     (* If less than 25ms have passed, delay until they have. *)
     let rec delay () =

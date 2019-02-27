@@ -139,7 +139,7 @@ let change_active_tet board tetr =
    queue = board.queue}
 
 let soft_drop board frame_count fast =
-  let hot_frame = if fast then true else frame_count > 18 in
+  let hot_frame = if fast then true else frame_count > 30 in
   if hot_frame then begin
     erase_tetronimo board.active_tet;
     let down1 = board.active_tet |> Tetronimo.m_down 1 in
