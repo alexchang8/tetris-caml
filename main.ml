@@ -32,6 +32,7 @@ let wait () = fst !state
 let rec main board_state frame_time frame_count =
   (* Display state here. *)
   let next_state = Board.update board_state (!input) frame_count in
+  input := Board.NoAction;
   Lwt.bind (wait ()) (fun () -> 
       if Board.lost_game next_state then begin
         let init_board = Board.init () in
@@ -51,18 +52,20 @@ let _ =   Js.Opt.iter
     Graphics_js.open_canvas 
 
 let c1 =
-  Html.addEventListener
-    Html.document
-    Html.Event.mousemove
+  Dom_html.addEventListener
+    Dom_html.document
+    Dom_html.Event.keydown
     (Dom_html.handler (fun ev ->
-         let x = ev##.clientX and y = ev##.clientY in
-         let dx = x - !mx and dy = y - !my in
-         if dy != 0
-         then m := matrix_mul (yz_rotation (2. *. float dy /. float width)) !m;
-         if dx != 0
-         then m := matrix_mul (xz_rotation (2. *. float dx /. float width)) !m;
-         mx := x;
-         my := y;
+         let _ = match ev##.keyCode with
+           | 32 -> input := Board.HardDrop
+           | 90 -> input := Board.Rotate(false)
+           | 88 -> input := Board.Rotate(true)
+           | 67 -> input := Board.Swap
+           | 78 -> input := Board.Translate(false)
+           | 77 -> input := Board.Translate(true)
+           | 66 -> input := Board.FastDrop
+           | _ -> ();
+         in
          Js._true ))
     Js._true
 
@@ -71,7 +74,7 @@ let rec start () =
   let _, w = !state in
   state := t;
   Lwt.wakeup w ();
-  Lwt.bind (Lwt_js.sleep (1. /. 40.)) start
+  Lwt.bind (Lwt_js.sleep (1. /. 50.)) start
 
 let init =
   let init_board = Board.init () in

@@ -11,16 +11,22 @@ type t = {active_tet : Tetronimo.t;
 let dark_grey = rgb 45 45 45
 
 let px_cell (x, y) f =
-  let x_c = x * 30 + 201 and
-  y_c = 651 - (y * 30) in
+  let x_c = x * 30 + 202 and
+  y_c = 652 - (y * 30) in
   if y = 0 then f x_c y_c 28 14
   else f x_c y_c 28 28
+
+let px_cell_line (x, y) f =
+  let x_c = x * 30 + 203 and
+  y_c = 653 - (y * 30) in
+  if y = 0 then f x_c y_c 26 12
+  else f x_c y_c 26 26
 
 let draw_cell coords =
   px_cell coords Graphics_js.fill_rect
 
 let highlight_cell coords =
-  px_cell coords Graphics_js.draw_rect
+  px_cell_line coords Graphics_js.draw_rect
 
 let paint_tetronimo t color =
   set_color color;
@@ -142,12 +148,12 @@ let soft_drop board frame_count fast =
   else board
 
 let transform board f frame_count =
-  erase_tetronimo  board.active_tet;
   let tet' = board.active_tet |> f in
   if collides board tet'
   then soft_drop board frame_count false
-  else (draw_tetronimo tet'; 
-        change_active_tet board tet')
+  else ( erase_tetronimo  board.active_tet;
+         draw_tetronimo tet'; 
+         change_active_tet board tet')
 
 let move_board_right board = transform board Tetronimo.m_right
 
@@ -174,15 +180,18 @@ let check_clear_lines b =
   end
   else b
 
-let do_highlight board c = 
+let do_highlight c locs = 
   set_color c;
-  let t_locs = drop_helper board board.active_tet |>
-               Tetronimo.m_down (-1) |> Tetronimo.locs in
-  let _ = List.map (fun coords -> highlight_cell coords) t_locs in () 
+  let _ = List.map (fun coords -> highlight_cell coords) locs in () 
 
-let highlight_tetronimo board = do_highlight board white
+let dropped board = 
+  drop_helper board board.active_tet |> Tetronimo.m_down (-1) |> Tetronimo.locs
 
-let remove_highlight board = do_highlight board dark_grey
+let update_highlights b b' =  
+  let old_locs = dropped b and
+  new_locs = dropped b' in
+  List.filter (fun x -> not (List.mem x new_locs)) old_locs |> do_highlight black;
+  new_locs |> do_highlight white
 
 let board_after_action b a frame_count = 
   match a with
@@ -198,7 +207,5 @@ let board_after_action b a frame_count =
 let update (b:t) (a:action) frame_count : t = 
   (*TODO: show swap block*)
   (* TODO: stop swap abuse*)
-  remove_highlight b;
   let b' = board_after_action b a frame_count |> check_clear_lines in
-  highlight_tetronimo b';
   b'
