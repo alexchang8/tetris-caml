@@ -3,26 +3,6 @@ open Board
 open Lwt_js
 open Dom_html
 
-(*ocamlbuild -pkg js_of_ocaml-lwt.Graphics_js -pkg unix -pkg js_of_ocaml -pkg js_of_ocaml-ppx main.byte*)
-(*let flush_kp () = while Graphics_js.key_pressed () do
-    let _ = Graphics_js.read_key ()
-    in ()
-  done
-
-  let get_input () : Board.action =
-  if not (Graphics_js.key_pressed ()) then Board.NoAction
-  else let k = Graphics_js.read_key () in
-    match k with
-    (*| ' ' -> Board.HardDrop
-      | 'z' -> Board.Rotate(false)
-      | 'x' -> Board.Rotate(true)
-      | 'c' -> Board.Swap
-      | 'n' -> Board.Translate(false)
-      | 'm' -> Board.Translate(true)
-      | 'b' -> Board.FastDrop*)
-    | _ -> Board.NoAction*)
-
-
 let input = ref (Board.NoAction)
 
 let state = ref (Lwt.task ())
@@ -43,8 +23,8 @@ let rec main board_state frame_time frame_count =
         let next_frame_count = if frame_count > 30 then 0 else frame_count + 1 in
         (* Advance state by one frame here. *)
         (* If less than 25ms have passed, delay until they have. *)
-        let diff = frame_time +. 0.025 -. Unix.gettimeofday () in
-        let sleep_duration = if diff < 0. then 0. else diff in
+        (*let diff = frame_time +. 0.025 -. Unix.gettimeofday () in
+          let sleep_duration = if diff < 0. then 0. else diff in*)
         main next_state (Unix.gettimeofday  ()) next_frame_count
     )
 let _ =   Js.Opt.iter
@@ -59,11 +39,11 @@ let c1 =
          let _ = match ev##.keyCode with
            | 32 -> input := Board.HardDrop
            | 90 -> input := Board.Rotate(false)
-           | 88 -> input := Board.Rotate(true)
+           | 88|38 -> input := Board.Rotate(true)
            | 67 -> input := Board.Swap
-           | 78 -> input := Board.Translate(false)
-           | 77 -> input := Board.Translate(true)
-           | 66 -> input := Board.FastDrop
+           | 78|37 -> input := Board.Translate(false)
+           | 77|39 -> input := Board.Translate(true)
+           | 66|40 -> input := Board.FastDrop
            | _ -> ();
          in
          Js._true ))
