@@ -16,17 +16,22 @@ let px_cell (x, y) f =
   if y = 0 then f x_c y_c 28 14
   else f x_c y_c 28 28
 
+(*Becuse pixels are slightly off in canvas, we need a separate function for this*)
 let px_cell_line (x, y) f =
-  let x_c = x * 30 + 203 and
-  y_c = 653 - (y * 30) in
-  if y = 0 then f x_c y_c 26 12
-  else f x_c y_c 26 26
+  let x_c = x * 30 + 201 and
+  y_c = 651 - (y * 30) in
+  if y = 0 then f x_c y_c 30 15
+  else f x_c y_c 30 30
 
 let draw_cell coords =
   px_cell coords Graphics_js.fill_rect
 
 let highlight_cell coords =
   px_cell_line coords Graphics_js.draw_rect
+
+let do_highlight c locs = 
+  set_color c;
+  let _ = List.map (fun coords -> highlight_cell coords) locs in () 
 
 let paint_tetronimo t color =
   set_color color;
@@ -93,6 +98,12 @@ let hard_drop board =
   erase_tetronimo board.active_tet;
   let t' = drop_helper board board.active_tet |> Tetronimo.m_down (-1) in
   draw_tetronimo t';
+  let t'_locs = t' |> Tetronimo.locs in
+  do_highlight black t'_locs;
+  do_highlight black t'_locs;
+  do_highlight black t'_locs;
+  do_highlight black t'_locs;
+  do_highlight black t'_locs;
   add_tetronimo_to_matrix board t';
   board_new_piece board
 
@@ -109,7 +120,7 @@ let random_tetronimo (x:unit) : Tetronimo.t =
 (*Board dimensions (x, y) are 10 by 20*)
 let init () =
   set_color Graphics_js.black;
-  fill_rect 200 50 300 615;
+  fill_rect 200 50 302 615;
   Random.self_init ();
   let new_q = rand_tet_list () in
   let tetr = List.hd new_q |> Tetronimo.new_piece in
@@ -139,9 +150,16 @@ let soft_drop board frame_count fast =
     erase_tetronimo board.active_tet;
     let down1 = board.active_tet |> Tetronimo.m_down 1 in
     if collides board down1
-    then (draw_tetronimo board.active_tet; 
-          add_tetronimo_to_matrix board board.active_tet;
-          board_new_piece board)
+    then ( let locs = Tetronimo.locs board.active_tet in
+           draw_tetronimo board.active_tet; 
+           do_highlight black locs;
+           do_highlight black locs;
+           do_highlight black locs;
+           do_highlight black locs;
+           do_highlight black locs;
+           do_highlight black locs;
+           add_tetronimo_to_matrix board board.active_tet;
+           board_new_piece board)
     else (draw_tetronimo down1; 
           change_active_tet board down1)
   end
@@ -180,17 +198,18 @@ let check_clear_lines b =
   end
   else b
 
-let do_highlight c locs = 
-  set_color c;
-  let _ = List.map (fun coords -> highlight_cell coords) locs in () 
-
 let dropped board = 
   drop_helper board board.active_tet |> Tetronimo.m_down (-1) |> Tetronimo.locs
 
 let update_highlights b b' =  
   let old_locs = dropped b and
   new_locs = dropped b' in
-  List.filter (fun x -> not (List.mem x new_locs)) old_locs |> do_highlight black;
+  let f_locs = List.filter (fun x -> not (List.mem x new_locs)) old_locs in
+  do_highlight black f_locs;
+  do_highlight black f_locs;
+  do_highlight black f_locs;
+  do_highlight black f_locs;
+  do_highlight black f_locs;
   new_locs |> do_highlight white
 
 let board_after_action b a frame_count = 
@@ -208,4 +227,5 @@ let update (b:t) (a:action) frame_count : t =
   (*TODO: show swap block*)
   (* TODO: stop swap abuse*)
   let b' = board_after_action b a frame_count |> check_clear_lines in
+  update_highlights b b';
   b'
