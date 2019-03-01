@@ -1,49 +1,11 @@
 open Tetronimo
 open Graphics_js
-
-type cell = Empty | Filled of Graphics_js.color
+open Gui
 
 type t = {active_tet : Tetronimo.t; 
           swap: Tetronimo.t; 
-          matrix: (cell array) array; 
+          matrix: (Gui.cell array) array; 
           queue: Tetronimo.piece list}
-
-let dark_grey = rgb 45 45 45
-
-let px_cell (x, y) f =
-  let x_c = x * 30 + 202 and
-  y_c = 652 - (y * 30) in
-  if y = 0 then f x_c y_c 28 14
-  else f x_c y_c 28 28
-
-(*Becuse pixels are slightly off in canvas, we need a separate function for this*)
-let px_cell_line (x, y) f =
-  let x_c = x * 30 + 201 and
-  y_c = 651 - (y * 30) in
-  if y = 0 then f x_c y_c 30 15
-  else f x_c y_c 30 30
-
-let draw_cell coords =
-  px_cell coords Graphics_js.fill_rect
-
-let highlight_cell coords =
-  px_cell_line coords Graphics_js.draw_rect
-
-let do_highlight c locs = 
-  set_color c;
-  let _ = List.map (fun coords -> highlight_cell coords) locs in () 
-
-let paint_tetronimo t color =
-  set_color color;
-  let t_locs = Tetronimo.locs t in
-  let _ = List.map (fun coords -> draw_cell coords) t_locs in () 
-
-let draw_tetronimo (t:Tetronimo.t) =
-  let c = get_color t in
-  paint_tetronimo t c
-
-let erase_tetronimo t =
-  paint_tetronimo t dark_grey
 
 let add_tetronimo_to_matrix b t =
   let c = get_color t in
@@ -98,35 +60,20 @@ let hard_drop board =
   erase_tetronimo board.active_tet;
   let t' = drop_helper board board.active_tet |> Tetronimo.m_down (-1) in
   draw_tetronimo t';
-  let t'_locs = t' |> Tetronimo.locs in
-  do_highlight black t'_locs;
-  do_highlight black t'_locs;
-  do_highlight black t'_locs;
-  do_highlight black t'_locs;
-  do_highlight black t'_locs;
+  erase_highlight t';
   add_tetronimo_to_matrix board t';
   board_new_piece board
-
-let redraw_row y row = Array.iteri 
-    (fun x cell -> match cell with 
-       | Empty -> set_color dark_grey; draw_cell (x, y)
-       | Filled(c) -> set_color c; draw_cell (x,y)) row
-
-let redraw_matrix = Array.iteri redraw_row
 
 let random_tetronimo (x:unit) : Tetronimo.t = 
   Random.int 7 |> num_to_piece |> Tetronimo.new_piece
 
 (*Board dimensions (x, y) are 10 by 20*)
 let init () =
-  set_color Graphics_js.black;
-  fill_rect 200 50 302 615;
   Random.self_init ();
   let new_q = rand_tet_list () in
   let tetr = List.hd new_q |> Tetronimo.new_piece in
   let matrix = Array.make_matrix 21 10 Empty in
-  draw_tetronimo tetr; 
-  redraw_matrix matrix;
+  draw_init matrix tetr;
   {active_tet = tetr;
    swap = random_tetronimo ();
    matrix = matrix;
@@ -150,14 +97,8 @@ let soft_drop board frame_count fast =
     erase_tetronimo board.active_tet;
     let down1 = board.active_tet |> Tetronimo.m_down 1 in
     if collides board down1
-    then ( let locs = Tetronimo.locs board.active_tet in
-           draw_tetronimo board.active_tet; 
-           do_highlight black locs;
-           do_highlight black locs;
-           do_highlight black locs;
-           do_highlight black locs;
-           do_highlight black locs;
-           do_highlight black locs;
+    then ( draw_tetronimo board.active_tet; 
+           erase_highlight board.active_tet;
            add_tetronimo_to_matrix board board.active_tet;
            board_new_piece board)
     else (draw_tetronimo down1; 
@@ -199,18 +140,7 @@ let check_clear_lines b =
   else b
 
 let dropped board = 
-  drop_helper board board.active_tet |> Tetronimo.m_down (-1) |> Tetronimo.locs
-
-let update_highlights b b' =  
-  let old_locs = dropped b and
-  new_locs = dropped b' in
-  let f_locs = List.filter (fun x -> not (List.mem x new_locs)) old_locs in
-  do_highlight black f_locs;
-  do_highlight black f_locs;
-  do_highlight black f_locs;
-  do_highlight black f_locs;
-  do_highlight black f_locs;
-  new_locs |> do_highlight white
+  drop_helper board board.active_tet |> Tetronimo.m_down (-1)
 
 let board_after_action b a frame_count = 
   match a with
@@ -227,5 +157,5 @@ let update (b:t) (a:action) frame_count : t =
   (*TODO: show swap block*)
   (* TODO: stop swap abuse*)
   let b' = board_after_action b a frame_count |> check_clear_lines in
-  update_highlights b b';
+  update_highlights (dropped b) (dropped b');
   b'

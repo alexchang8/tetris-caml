@@ -1,4 +1,3 @@
-open Graphics_js
 (** the abstract type representing a tetronimo*)
 
 (** represents the type of piece*)
